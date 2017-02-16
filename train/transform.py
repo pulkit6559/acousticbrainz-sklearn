@@ -12,6 +12,11 @@ def transform(data, transformlist):
     return data
 
 def transform_all(data, transformlist):
+    # TODO some transformations are working on dictionaries,
+    # others on numpy arrays, therefore transformation should be
+    # applied in a specific order. We can think of converting to
+    # numpy as a transformation as well.
+
     for t in transformlist:
         transform = t["transfo"]
         params = t.get("params")
@@ -57,7 +62,8 @@ def tr_all_enumerate(data, params):
     return data
 
 def tr_all_remove_varlength(data):
-    """ Remove variable-lengths descriptors """
+    """ input: dict {key, datafile}
+    Remove variable-lengths descriptors """
     # TODO: Iterate through data to find flattened lists of variable length
     # This transformation should be applied before computing the common layout
     # for the dataset, otherwise all variable-length lists would become
