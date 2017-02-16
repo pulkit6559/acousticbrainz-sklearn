@@ -74,6 +74,14 @@ def tr_all_cleaner(data):
     pass
 
 def tr_all_normalize(data):
+    # TODO: Normalize to [0, 1] (default Gaia behavior)
+    #       - use sklearn.preprocessing.minmax_scale
+
+    # To add in future:
+    # - Standardize (center to the mean and scale to unit variance)
+    #   (sklearn.preprocessing.scale)
+    # - Robust standardize (sklearn.preprocessing.scale)
+    # - Normalize to unit norm (sklearn.preprocessing.normalize)
     pass
 
 def tr_all_gaussianize(data):
