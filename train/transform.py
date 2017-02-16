@@ -28,7 +28,6 @@ def tr_remove(data, params):
     """ converts normal acousticbrainz structured data into {key.sub.sub: value}-style dict """
     return convert.convert(data, ignore=params)
 
-
 def tr_all_enumerate(data, params):
     """ input: dict {key, datafile}
     Get all possible values for datafile[p in params]
@@ -57,8 +56,27 @@ def tr_all_enumerate(data, params):
 
     return data
 
+def tr_all_remove_varlength(data):
+    """ Remove variable-lengths descriptors """
+    # TODO: Iterate through data to find flattened lists of variable length
+    # This transformation should be applied before computing the common layout
+    # for the dataset, otherwise all variable-length lists would become
+    # fixed-length with the minimum size encountered (which is maybe ok for some
+    # tasks in future).
+    pass
+
+def tr_all_cleaner(data):
+    """ Remove all descriptors that are either constant values,
+    or contain NaN of Inf values. """
+    # TODO: print a list of removed descriptors
+    # Use numpy.sum() http://stackoverflow.com/a/6736970/603642
+    # We can also do Nan / Inf check in convert()
+    pass
+
 def tr_all_normalize(data):
     pass
 
 def tr_all_gaussianize(data):
     pass
+
+
