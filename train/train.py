@@ -95,6 +95,9 @@ def train_model_iteration(projectroot, project, iteration):
                 print(featkey)
                 raise
 
+    # TODO: We should do normalize/gaussianize here, because we have the data in a np array
+    # and can use np methods to do it quickly
+
     print("verifying data")
     mbids = list(data.keys())
     for i in range(numitems):
