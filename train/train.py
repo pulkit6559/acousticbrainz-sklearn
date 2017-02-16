@@ -1,39 +1,36 @@
 
 from sklearn.svm import SVC
+import numpy as np
+import json
+import yaml
+import os
 
-import acousticbrainz
-
-
-def filter_descriptors(mbids, cache_dir, filterdesc):
-    # TODO: filelist/groundtruth uses arbitrary file labels, we could use this instead of `mbid`
-    # Load files from disk
-    # filter, to remove params
-    # turn into np array per class
-    pass
+from train import transform
 
 
-def load_filelist(flfile):
-    return yaml.load(open(flfile))
+def load_and_filter_descriptors(filelist, filterdesc, preprocessing):
+    """ Load a project filelist and perform transformations
+        Returns:
+            a dictionary of {filekey: filtereddata, ...}
+    """
+
+    ret = {}
+    # TODO: If this doesn't exist?
+    pre = preprocessing[filterdesc]
+    for k, path in filelist.items():
+        data = json.load(open(path))
+        tr = transform.transform(data, pre)
+        ret[k] = tr
+
+    return ret
 
 
-def load_groundtruth(gtfile):
-    return yaml.load(open(gtfile))
+def load_filelist(projectroot, flfile):
+    return yaml.load(open(os.path.join(projectroot, flfile)))
 
 
-def load_data(project):
-    files = project["filelist"]
-    gt = project["groundtruth"]
-
-    if files is None:
-        # If there are no files, it means the GT has mbids and we need to download them from AB
-        # TODO: Is this the right place? Perhaps it should be in make_project?
-
-        acousticbrainz.cache_mbids()
-
-    keys = set()
-    # cache data
-    # for each class
-    # - load and filter this classes files (transformation depends on our iteration)
+def load_groundtruth(projectroot, gtfile):
+    return yaml.load(open(os.path.join(projectroot, gtfile)))
 
 
 def enumerate_combinations(project):
@@ -43,23 +40,60 @@ def enumerate_combinations(project):
             for k in s["kernel"]:
                 for g in s["gamma"]:
                     for c in s["C"]:
-                        params.append({"preprocessing": pre, "kernel": k, "gamma": g, "C", c})
+                        params.append({"preprocessing": pre, "kernel": k, "gamma": g, "C": c})
     return params
 
-def train_model_iteration(project, iteration):
+
+def train_model_iteration(projectroot, project, iteration):
     param_iters = enumerate_combinations(project)
     if iteration >= len(param_iters) or iteration < 0:
         raise Exception("iteration parameter is out of bounds of number of available iterations (%s)" % (len(param_iters), ))
 
     params = param_iters[iteration]
+    print(params)
 
-    classes, data = load_data(project, params)
+    flfile = project["filelist"]
+    gt = project["groundtruth"]
+    groundtruth = load_groundtruth(projectroot, gt)
+    classes = groundtruth.values()
 
+    print("Loading...")
+    data = load_and_filter_descriptors(load_filelist(projectroot, flfile), params["preprocessing"], project["preprocessing"])
+    print("done")
+
+    # loop through data items, get all keys
+    keys = set()
+    for k, v in data.items():
+        keys.update(set(v.keys()))
+
+    # map gt class names to numbers
     class_map = dict([(v, i) for i, v in enumerate(classes, 1)]) # class labels to numbers
+    keys = sorted(list(keys))
+    numkeys = len(keys)
 
 
-    cls = SVC(params)
-    cls.train(data, classes)
+    numitems = len(data)
+    feature_data = np.empty(numitems)
+    feature_classes = np.empty(numitems)
+
+    for i, (k, d) in enumerate(data.items()):
+        class_val = class_map[groundtruth[k]]
+        feature_classes[i] = class_val
+        # TODO: optimisation - make featuredata `numitems x numkeys`
+        #       check how much memory this uses - will we replicate `data`?
+        item_data = np.empty(numkeys)
+        for j, featkey in enumerate(keys):
+            # None or NaN?
+            item_data[j] = d.get(featkey)
+        feature_data[i] = item_data
+
+    k = params["kernel"]
+    g = params["gamma"]
+    c = params["C"]
+    clf = SVC(kernel=k, gamma=2**g, C=2**C)
+    clf.train(feature_data, feature_classes)
+
+    pickle.dump(clf, open("test.pkl"))
 
 
 

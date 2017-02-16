@@ -1,6 +1,5 @@
-# Convert from MusicExtractor json to numpy array
+# Convert from MusicExtractor json to filtered dictionary
 
-import json
 from fnmatch import fnmatch
 
 def isMatch(name, patterns):

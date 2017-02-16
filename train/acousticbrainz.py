@@ -1,6 +1,7 @@
 # Get items from an AcousticBrainz website
 
 import os
+import json
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -22,7 +23,7 @@ def download_mbids(mbidlist):
     If an mbid doesn't exist, it is not returned.
     """
     ret = {}
-    url = os.path.join(ACOUSTICBRAINZ_ROOT, "api/v1/lowlevel")
+    url = os.path.join(ACOUSTICBRAINZ_ROOT, "api/v1/low-level")
 
     recids = ";".join(mbidlist)
     r = session.get(url, params={"recording_ids": recids})

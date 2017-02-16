@@ -35,8 +35,9 @@ def acousticbrainz(args):
 
     # and filelist file {"mbid": "path", ...}
     filelist = {}
+    filelistname = "filelist.yaml"
     for k in gt.keys():
-        filelist[k] = acousticbrainz.file_for(datadir, k)
+        filelist[k] = train.acousticbrainz.file_for(datadir, k)
     with open(os.path.join(root, filelistname), "w") as fp:
         yaml.dump(filelist, fp)
 
@@ -47,7 +48,7 @@ def acousticbrainz(args):
 
     projectfile = template % {"className": args.projectname,
             "datasetsDirectory": datadir,
-            "resultsDirectory": results,
+            "resultsDirectory": resultsdir,
             "filelist": filelistname,
             "groundtruth": groundtruthname}
 
