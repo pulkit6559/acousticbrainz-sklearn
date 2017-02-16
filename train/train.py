@@ -4,6 +4,7 @@ import numpy as np
 import json
 import yaml
 import os
+import pickle
 
 from train import transform
 
@@ -17,10 +18,15 @@ def load_and_filter_descriptors(filelist, filterdesc, preprocessing):
     ret = {}
     # TODO: If this doesn't exist?
     pre = preprocessing[filterdesc]
+    print(pre)
+    # TODO: If remove or include are first transforms, do them on load
     for k, path in filelist.items():
         data = json.load(open(path))
         tr = transform.transform(data, pre)
         ret[k] = tr
+
+    # TODO: otherwise, do filtering after it's all loaded
+    ret = transform.transform_all(ret, pre)
 
     return ret
 
@@ -73,7 +79,7 @@ def train_model_iteration(projectroot, project, iteration):
 
 
     numitems = len(data)
-    feature_data = np.empty(numitems)
+    feature_data = np.empty((numitems, numkeys))
     feature_classes = np.empty(numitems)
 
     for i, (k, d) in enumerate(data.items()):
@@ -81,44 +87,37 @@ def train_model_iteration(projectroot, project, iteration):
         feature_classes[i] = class_val
         # TODO: optimisation - make featuredata `numitems x numkeys`
         #       check how much memory this uses - will we replicate `data`?
-        item_data = np.empty(numkeys)
         for j, featkey in enumerate(keys):
-            # None or NaN?
-            item_data[j] = d.get(featkey)
-        feature_data[i] = item_data
+            # TODO: None or NaN?
+            try:
+                feature_data[i][j] = d.get(featkey)
+            except ValueError:
+                print(featkey)
+                raise
+
+    print("verifying data")
+    mbids = list(data.keys())
+    for i in range(numitems):
+        for j in range(numkeys):
+            if np.isnan(feature_data[i][j]):
+                print("item %s value %s is nan" % (mbids[i], keys[j]))
+            if np.isinf(feature_data[i][j]):
+                print("item %s value %s is inf" % (mbids[i], keys[j]))
 
     k = params["kernel"]
     g = params["gamma"]
     c = params["C"]
-    clf = SVC(kernel=k, gamma=2**g, C=2**C)
-    clf.train(feature_data, feature_classes)
+    clf = SVC(kernel=k, gamma=2**g, C=2**c)
+    print("training model...")
+    clf.fit(feature_data, feature_classes)
+    print("done, dumping")
 
-    pickle.dump(clf, open("test.pkl"))
-
-
-
-# Runner for cluster - read parameters and generate combinations, use index to select which combination
-#                    - this must be reproducable each time
-
-# Get transformations from projectfile / num permutation
-# Perform descriptor filtering
-# If number of descriptors is different in files in a class, perhaps data is missing.
-#              - Ignore bad file? fill it in with NaN?
-# Perform descriptor transformations (enumerate, normalize, gaussianize)
-
-# Normal grid search - read parameters and put into scikitlearn method
-
-# Test/train split - n folds in project file
-
-# For each permutation, save 1 file with params
-#                            1 file with ... results of test split?
-#                                   Use groundtruth file to get accuracy
-
-# Tool to look at results dir and see if any permutations failed to run, run them
-
-# After all permutations are done, look in results and find params for run with best results
-#                                  train model again using all data (no test split) and these params
-# Save model
-
-# Load model and perform classification
+    # TODO: Also need to store the order of keys
+    # TODO: and class->string mappings
+    # Why not the entire dataset groundtruth?
+    # Parameters
+    # cross-validation accuracy
+    # cross-validation confusion matrices
+    pickle.dump(clf, open("test.pkl", "w"))
+    print("done")
 
